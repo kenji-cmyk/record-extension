@@ -1,0 +1,55 @@
+import { OffscreenManager } from './extension/OffscreenManager.js';
+import { RecordingController } from './core/RecordingController.js';
+import { AudioCaptureManager } from './core/AudioCaptureManager.js';
+import { WebAudioMixer } from './core/AudioMixer.js';
+import { WebMRecorderManager } from './core/MediaRecorderManager.js';
+import { PermissionManager } from './core/PermissionManager.js';
+import { ErrorHandler } from './core/ErrorHandler.js';
+import { ExtensionMessage } from './types/index.js';
+
+/**
+ * Offscreen document entry point for audio processing
+ * Initializes audio capture and recording components
+ */
+
+// Initialize core components
+const permissionManager = new PermissionManager();
+const audioCaptureManager = new AudioCaptureManager();
+const audioMixer = new WebAudioMixer();
+const mediaRecorderManager = new WebMRecorderManager();
+const errorHandler = new ErrorHandler(audioMixer);
+
+const recordingController = new RecordingController(
+  permissionManager,
+  audioCaptureManager,
+  audioMixer,
+  mediaRecorderManager,
+  errorHandler
+);
+
+const offscreenManager = new OffscreenManager(recordingController);
+
+// Initialize audio processing
+offscreenManager.initializeAudioProcessing().catch(error => {
+  console.error('Failed to initialize audio processing:', error);
+});
+
+// Handle messages from service worker and popup
+chrome.runtime.onMessage.addListener(async (message: ExtensionMessage) => {
+  if (message.target === 'offscreen') {
+    try {
+      switch (message.type) {
+        case 'start-recording':
+          await offscreenManager.handleRecordingRequest(message.data);
+          break;
+        case 'stop-recording':
+          // Implementation will be added in subsequent tasks
+          break;
+        default:
+          console.warn('Unrecognized message type:', message.type);
+      }
+    } catch (error) {
+      console.error('Offscreen message handling failed:', error);
+    }
+  }
+});
