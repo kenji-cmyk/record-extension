@@ -4,13 +4,12 @@ import { RecordingController as IRecordingController, RecordingOptions, Recordin
  * Integrates all components: permissions, audio capture, mixing, and recording
  */
 export declare class RecordingController implements IRecordingController {
-    private permissionManager;
     private audioCaptureManager;
     private audioMixer;
     private mediaRecorderManager;
     private errorHandler;
     private currentState;
-    private startTime?;
+    private startTime;
     private pausedDuration;
     constructor(permissionManager: PermissionManager, audioCaptureManager: AudioCaptureManager, audioMixer: AudioMixer, mediaRecorderManager: MediaRecorderManager, errorHandler: ErrorHandler);
     startRecording(options: RecordingOptions): Promise<void>;

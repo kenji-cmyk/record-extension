@@ -1,78 +1,45 @@
 const fs = require('fs');
 const path = require('path');
 
-/**
- * Build script to compile TypeScript and prepare extension files
- */
+const publicDir = path.resolve('public');
+const distDir = path.resolve('dist');
 
-// Copy static files to dist directory
-function copyStaticFiles() {
-  const staticFiles = [
-    'manifest.json',
-    'popup.html',
-    'offscreen.html',
-    'permission.html',
-    'permission.js', // Keep existing permission.js as-is for now
-    'icons/recording.png',
-    'icons/not-recording.png'
-  ];
-
-  // Ensure dist directory exists
-  if (!fs.existsSync('dist')) {
-    fs.mkdirSync('dist', { recursive: true });
+function copyDirectory(sourceDir, targetDir) {
+  if (!fs.existsSync(sourceDir)) {
+    throw new Error(`Missing public assets directory: ${sourceDir}`);
   }
 
-  // Ensure dist/icons directory exists
-  if (!fs.existsSync('dist/icons')) {
-    fs.mkdirSync('dist/icons', { recursive: true });
+  fs.cpSync(sourceDir, targetDir, {
+    recursive: true,
+    force: true
+  });
+}
+
+function validateManifest() {
+  const manifestPath = path.join(distDir, 'manifest.json');
+  if (!fs.existsSync(manifestPath)) {
+    throw new Error('dist/manifest.json was not generated.');
   }
 
-  staticFiles.forEach(file => {
-    if (fs.existsSync(file)) {
-      const destPath = path.join('dist', file);
-      const destDir = path.dirname(destPath);
-      
-      if (!fs.existsSync(destDir)) {
-        fs.mkdirSync(destDir, { recursive: true });
-      }
-      
-      fs.copyFileSync(file, destPath);
-      console.log(`Copied ${file} to ${destPath}`);
-    } else {
-      console.warn(`Static file not found: ${file}`);
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  const requiredFiles = [
+    manifest.background?.service_worker,
+    manifest.action?.default_popup
+  ].filter(Boolean);
+
+  requiredFiles.forEach((file) => {
+    const outputPath = path.join(distDir, file);
+    if (!fs.existsSync(outputPath)) {
+      throw new Error(`Manifest points to missing file: ${file}`);
     }
   });
 }
 
-// Update manifest.json to point to compiled JS files
-function updateManifest() {
-  const manifestPath = 'dist/manifest.json';
-  if (fs.existsSync(manifestPath)) {
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-    
-    // Update service worker path
-    if (manifest.background && manifest.background.service_worker) {
-      manifest.background.service_worker = 'service-worker.js';
-    }
-    
-    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
-    console.log('Updated manifest.json with compiled paths');
-  }
-}
-
-// Main build function
 function build() {
-  console.log('Starting build process...');
-  
-  try {
-    copyStaticFiles();
-    updateManifest();
-    console.log('Build completed successfully!');
-    console.log('Run "npm run build" to compile TypeScript files');
-  } catch (error) {
-    console.error('Build failed:', error);
-    process.exit(1);
-  }
+  console.log('Copying extension static assets...');
+  copyDirectory(publicDir, distDir);
+  validateManifest();
+  console.log('Build completed successfully.');
 }
 
 build();

@@ -27,10 +27,13 @@ chrome.runtime.onMessage.addListener(async (message) => {
         try {
             switch (message.type) {
                 case 'start-recording':
+                    if (typeof message.data !== 'string') {
+                        throw new Error('Invalid tab capture stream id.');
+                    }
                     await offscreenManager.handleRecordingRequest(message.data);
                     break;
                 case 'stop-recording':
-                    // Implementation will be added in subsequent tasks
+                    await offscreenManager.stopRecording();
                     break;
                 default:
                     console.warn('Unrecognized message type:', message.type);

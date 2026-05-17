@@ -7,27 +7,72 @@ export class RecordingController {
     constructor(permissionManager, audioCaptureManager, audioMixer, mediaRecorderManager, errorHandler) {
         this.currentState = RecordingState.IDLE;
         this.pausedDuration = 0;
-        this.permissionManager = permissionManager;
+        void permissionManager;
         this.audioCaptureManager = audioCaptureManager;
         this.audioMixer = audioMixer;
         this.mediaRecorderManager = mediaRecorderManager;
         this.errorHandler = errorHandler;
     }
     async startRecording(options) {
-        // Implementation will be added in subsequent tasks
-        throw new Error('Not implemented yet');
+        if (this.currentState === RecordingState.RECORDING || this.currentState === RecordingState.STARTING) {
+            throw new Error('Recording is already in progress.');
+        }
+        this.currentState = RecordingState.STARTING;
+        this.startTime = new Date();
+        this.pausedDuration = 0;
+        try {
+            this.audioCaptureManager.releaseAllStreams();
+            const tabStream = await this.audioCaptureManager.initializeTabCapture(options.streamId);
+            const [source] = this.audioCaptureManager.getAvailableAudioSources()
+                .filter((audioSource) => audioSource.stream === tabStream);
+            if (!source) {
+                throw new Error('Unable to register tab audio source.');
+            }
+            this.audioMixer.addAudioSource(source);
+            this.mediaRecorderManager.startRecording(this.audioMixer.getMixedStream(), options);
+            this.currentState = RecordingState.RECORDING;
+        }
+        catch (error) {
+            this.currentState = RecordingState.ERROR;
+            await this.errorHandler.handleRecordingError({
+                name: 'RecordingError',
+                message: error instanceof Error ? error.message : 'Unable to start recording.',
+                type: 'recording-failed',
+                code: 'START_FAILED',
+                recoverable: false
+            });
+            this.audioCaptureManager.releaseAllStreams();
+            throw error;
+        }
     }
     async pauseRecording() {
-        // Implementation will be added in subsequent tasks
-        throw new Error('Not implemented yet');
+        if (this.currentState !== RecordingState.RECORDING)
+            return;
+        this.mediaRecorderManager.pauseRecording();
+        this.currentState = RecordingState.PAUSED;
     }
     async resumeRecording() {
-        // Implementation will be added in subsequent tasks
-        throw new Error('Not implemented yet');
+        if (this.currentState !== RecordingState.PAUSED)
+            return;
+        this.mediaRecorderManager.resumeRecording();
+        this.currentState = RecordingState.RECORDING;
     }
     async stopRecording() {
-        // Implementation will be added in subsequent tasks
-        throw new Error('Not implemented yet');
+        if (this.currentState === RecordingState.IDLE) {
+            return new Blob([], { type: 'audio/webm' });
+        }
+        this.currentState = RecordingState.STOPPING;
+        try {
+            const blob = await this.mediaRecorderManager.stopRecording();
+            this.audioCaptureManager.releaseAllStreams();
+            this.currentState = RecordingState.IDLE;
+            this.startTime = undefined;
+            return blob;
+        }
+        catch (error) {
+            this.currentState = RecordingState.ERROR;
+            throw error;
+        }
     }
     getRecordingState() {
         return this.currentState;

@@ -1,13 +1,10 @@
 import { AudioCaptureManager as IAudioCaptureManager, AudioSource } from '../types/index.js';
 /**
- * Manages audio capture from multiple sources: system audio, microphone, and tab capture
- * Implements primary getDisplayMedia approach with tabCapture fallback
+ * Captures audio from the active browser tab only.
  */
 export declare class AudioCaptureManager implements IAudioCaptureManager {
     private audioSources;
-    initializeSystemAudio(): Promise<MediaStream>;
-    initializeMicrophone(): Promise<MediaStream>;
-    initializeTabCapture(): Promise<MediaStream[]>;
+    initializeTabCapture(streamId: string): Promise<MediaStream>;
     releaseAllStreams(): void;
     getAvailableAudioSources(): AudioSource[];
     private generateSourceId;

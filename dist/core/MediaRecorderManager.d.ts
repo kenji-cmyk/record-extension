@@ -4,8 +4,11 @@ import { MediaRecorderManager as IMediaRecorderManager, RecordingOptions } from 
  * Supports WebM and MP3 formats with configurable quality settings
  */
 export declare class WebMRecorderManager implements IMediaRecorderManager {
-    private mediaRecorder?;
+    private mediaRecorder;
     private recordedChunks;
+    private stopPromise;
+    private resolveStop;
+    private rejectStop;
     startRecording(stream: MediaStream, options: RecordingOptions): void;
     pauseRecording(): void;
     resumeRecording(): void;

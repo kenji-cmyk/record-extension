@@ -1,9 +1,9 @@
 {
   "name": "browser-wide-audio-recording",
   "version": "1.0.0",
-  "description": "Chrome extension for browser-wide audio recording with microphone integration",
+  "description": "Chrome extension for recording audio from the active browser tab",
   "scripts": {
-    "build": "tsc && node build.js",
+    "build": "rimraf dist && tsc && node build.js",
     "build:ts": "tsc",
     "build:copy": "node build.js",
     "watch": "tsc --watch",

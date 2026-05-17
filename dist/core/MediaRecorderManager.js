@@ -8,20 +8,61 @@ export class WebMRecorderManager {
         this.recordedChunks = [];
     }
     startRecording(stream, options) {
-        // Implementation will be added in subsequent tasks
-        throw new Error('Not implemented yet');
+        if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+            throw new Error('Recording is already in progress.');
+        }
+        this.recordedChunks = [];
+        const mimeType = this.getMimeType(options.outputFormat);
+        const recorderOptions = {
+            audioBitsPerSecond: this.getAudioBitrate(options.audioQuality)
+        };
+        if (MediaRecorder.isTypeSupported(mimeType)) {
+            recorderOptions.mimeType = mimeType;
+        }
+        this.mediaRecorder = new MediaRecorder(stream, recorderOptions);
+        this.stopPromise = new Promise((resolve, reject) => {
+            this.resolveStop = resolve;
+            this.rejectStop = reject;
+        });
+        this.mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                this.recordedChunks.push(event.data);
+            }
+        };
+        this.mediaRecorder.onerror = () => {
+            this.rejectStop?.(new Error('MediaRecorder failed while recording.'));
+        };
+        this.mediaRecorder.onstop = () => {
+            const blob = new Blob(this.recordedChunks, { type: 'audio/webm' });
+            this.resolveStop?.(blob);
+        };
+        this.mediaRecorder.start(1000);
     }
     pauseRecording() {
-        // Implementation will be added in subsequent tasks
-        throw new Error('Not implemented yet');
+        if (this.mediaRecorder?.state === 'recording') {
+            this.mediaRecorder.pause();
+        }
     }
     resumeRecording() {
-        // Implementation will be added in subsequent tasks
-        throw new Error('Not implemented yet');
+        if (this.mediaRecorder?.state === 'paused') {
+            this.mediaRecorder.resume();
+        }
     }
     async stopRecording() {
-        // Implementation will be added in subsequent tasks
-        throw new Error('Not implemented yet');
+        if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') {
+            return new Blob(this.recordedChunks, { type: 'audio/webm' });
+        }
+        const result = this.stopPromise;
+        if (!result) {
+            return new Blob(this.recordedChunks, { type: 'audio/webm' });
+        }
+        this.mediaRecorder.stop();
+        const blob = await result;
+        this.mediaRecorder = undefined;
+        this.stopPromise = undefined;
+        this.resolveStop = undefined;
+        this.rejectStop = undefined;
+        return blob;
     }
     getRecordedData() {
         return [...this.recordedChunks];
@@ -41,7 +82,7 @@ export class WebMRecorderManager {
         }
     }
     getMimeType(format) {
-        return format === 'webm' ? 'audio/webm;codecs=opus' : 'audio/mp4';
+        return format === 'webm' ? 'audio/webm;codecs=opus' : 'audio/webm';
     }
 }
 //# sourceMappingURL=MediaRecorderManager.js.map

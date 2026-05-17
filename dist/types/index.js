@@ -1,4 +1,4 @@
-// Core Types and Interfaces for Browser-Wide Audio Recording Extension
+// Core Types and Interfaces for Tab Audio Recording Extension
 export var RecordingState;
 (function (RecordingState) {
     RecordingState["IDLE"] = "idle";

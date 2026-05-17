@@ -7,11 +7,11 @@ export declare class PopupController implements IPopupController {
     private uiState;
     private startButton?;
     private stopButton?;
-    private pauseButton?;
-    private resumeButton?;
     private statusElement?;
     private durationElement?;
     private errorElement?;
+    private timerId;
+    private recordingStartedAt;
     constructor();
     updateRecordingState(state: RecordingState): void;
     updateRecordingDuration(duration: number): void;
@@ -24,6 +24,10 @@ export declare class PopupController implements IPopupController {
     private initializeElements;
     private setupEventListeners;
     private handleMessage;
+    private syncRecordingState;
+    private startTimer;
+    private stopTimer;
+    private getStatusText;
     private formatDuration;
 }
 //# sourceMappingURL=PopupController.d.ts.map

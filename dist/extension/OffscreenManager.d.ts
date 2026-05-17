@@ -8,8 +8,10 @@ export declare class OffscreenManager implements IOffscreenManager {
     constructor(recordingController: RecordingController | undefined);
     initializeAudioProcessing(): Promise<void>;
     handleRecordingRequest(streamId: string): Promise<void>;
+    stopRecording(): Promise<void>;
     cleanup(): Promise<void>;
     private getDefaultRecordingOptions;
+    private downloadRecording;
     private sendMessageToServiceWorker;
     private sendMessageToPopup;
 }

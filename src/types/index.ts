@@ -1,4 +1,4 @@
-// Core Types and Interfaces for Browser-Wide Audio Recording Extension
+// Core Types and Interfaces for Tab Audio Recording Extension
 
 // ============================================================================
 // Recording Controller Interfaces
@@ -14,10 +14,9 @@ export interface RecordingController {
 }
 
 export interface RecordingOptions {
-  includeSystemAudio: boolean;
-  includeMicrophone: boolean;
+  streamId: string;
   audioQuality: AudioQuality;
-  outputFormat: 'webm' | 'mp3';
+  outputFormat: 'webm';
 }
 
 export enum RecordingState {
@@ -34,16 +33,14 @@ export enum RecordingState {
 // ============================================================================
 
 export interface AudioCaptureManager {
-  initializeSystemAudio(): Promise<MediaStream>;
-  initializeMicrophone(): Promise<MediaStream>;
-  initializeTabCapture(): Promise<MediaStream[]>;
+  initializeTabCapture(streamId: string): Promise<MediaStream>;
   releaseAllStreams(): void;
   getAvailableAudioSources(): AudioSource[];
 }
 
 export interface AudioSource {
   id: string;
-  type: 'system' | 'microphone' | 'tab';
+  type: 'tab';
   name: string;
   stream: MediaStream;
   isActive: boolean;
@@ -84,15 +81,11 @@ export interface MediaRecorderManager {
 // ============================================================================
 
 export interface PermissionManager {
-  requestDisplayMediaPermission(): Promise<boolean>;
-  requestMicrophonePermission(): Promise<boolean>;
   checkTabCapturePermission(): Promise<boolean>;
   getPermissionStatus(): PermissionStatus;
 }
 
 export interface PermissionStatus {
-  displayMedia: 'granted' | 'denied' | 'prompt';
-  microphone: 'granted' | 'denied' | 'prompt';
   tabCapture: 'granted' | 'denied';
 }
 
@@ -121,20 +114,13 @@ export interface RecordingMetadata {
 }
 
 export interface AudioConfiguration {
-  systemAudio: {
+  tabAudio: {
     enabled: boolean;
     volume: number;
     sampleRate: number;
   };
-  microphone: {
-    enabled: boolean;
-    volume: number;
-    echoCancellation: boolean;
-    noiseSuppression: boolean;
-    autoGainControl: boolean;
-  };
   output: {
-    format: 'webm' | 'mp3';
+    format: 'webm';
     quality: AudioQuality;
     bitRate: number;
   };
@@ -158,7 +144,7 @@ export interface ErrorHandler {
 }
 
 export interface PermissionError extends Error {
-  type: 'microphone-denied' | 'display-media-denied' | 'tab-capture-denied';
+  type: 'tab-capture-denied';
   code: string;
 }
 
@@ -175,8 +161,11 @@ export interface RecordingError extends Error {
 export interface ExtensionMessage {
   type: string;
   target: 'service-worker' | 'offscreen' | 'popup';
-  data?: any;
+  data?: unknown;
   error?: string;
+  recording?: boolean;
+  state?: RecordingState;
+  duration?: number;
 }
 
 export interface ServiceWorkerManager {
@@ -244,10 +233,6 @@ export interface StreamConfiguration {
       chromeMediaSource?: string;
       chromeMediaSourceId?: string;
     };
-    echoCancellation?: boolean;
-    noiseSuppression?: boolean;
-    autoGainControl?: boolean;
-    systemAudio?: 'include' | 'exclude';
   };
   video?: boolean;
 }

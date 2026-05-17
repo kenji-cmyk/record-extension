@@ -17,42 +17,33 @@ export class ErrorHandler implements IErrorHandler {
   }
 
   async handlePermissionError(error: PermissionError): Promise<void> {
-    // Implementation will be added in subsequent tasks
-    throw new Error('Not implemented yet');
+    this.showUserNotification(error.message);
   }
 
   async handleStreamInterruption(streamId: string): Promise<void> {
-    // Implementation will be added in subsequent tasks
-    throw new Error('Not implemented yet');
+    console.warn(`Audio stream interrupted: ${streamId}`);
+    this.continueRecording();
   }
 
   async handleRecordingError(error: RecordingError): Promise<void> {
-    // Implementation will be added in subsequent tasks
-    throw new Error('Not implemented yet');
-  }
+    if (error.recoverable) {
+      this.continueRecording();
+      return;
+    }
 
-  private async continueWithSystemAudioOnly(): Promise<void> {
-    // Implementation will be added in subsequent tasks
-    console.log('Continuing with system audio only');
-  }
-
-  private async fallbackToTabCapture(): Promise<void> {
-    // Implementation will be added in subsequent tasks
-    console.log('Falling back to tab capture');
+    this.stopRecordingWithError(error.message);
   }
 
   private continueRecording(): void {
-    // Implementation will be added in subsequent tasks
     console.log('Continuing recording with remaining streams');
   }
 
   private stopRecordingWithError(message: string): void {
-    // Implementation will be added in subsequent tasks
+    this.audioMixer.getAudioContext().suspend().catch(() => undefined);
     console.error('Stopping recording due to error:', message);
   }
 
   private showUserNotification(message: string): void {
-    // Implementation will be added in subsequent tasks
     console.log('User notification:', message);
   }
 }

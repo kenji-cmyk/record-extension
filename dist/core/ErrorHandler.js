@@ -7,35 +7,27 @@ export class ErrorHandler {
         this.audioMixer = audioMixer;
     }
     async handlePermissionError(error) {
-        // Implementation will be added in subsequent tasks
-        throw new Error('Not implemented yet');
+        this.showUserNotification(error.message);
     }
     async handleStreamInterruption(streamId) {
-        // Implementation will be added in subsequent tasks
-        throw new Error('Not implemented yet');
+        console.warn(`Audio stream interrupted: ${streamId}`);
+        this.continueRecording();
     }
     async handleRecordingError(error) {
-        // Implementation will be added in subsequent tasks
-        throw new Error('Not implemented yet');
-    }
-    async continueWithSystemAudioOnly() {
-        // Implementation will be added in subsequent tasks
-        console.log('Continuing with system audio only');
-    }
-    async fallbackToTabCapture() {
-        // Implementation will be added in subsequent tasks
-        console.log('Falling back to tab capture');
+        if (error.recoverable) {
+            this.continueRecording();
+            return;
+        }
+        this.stopRecordingWithError(error.message);
     }
     continueRecording() {
-        // Implementation will be added in subsequent tasks
         console.log('Continuing recording with remaining streams');
     }
     stopRecordingWithError(message) {
-        // Implementation will be added in subsequent tasks
+        this.audioMixer.getAudioContext().suspend().catch(() => undefined);
         console.error('Stopping recording due to error:', message);
     }
     showUserNotification(message) {
-        // Implementation will be added in subsequent tasks
         console.log('User notification:', message);
     }
 }

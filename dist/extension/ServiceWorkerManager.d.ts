@@ -7,6 +7,10 @@ export declare class ServiceWorkerManager implements IServiceWorkerManager {
     handleExtensionInstall(): Promise<void>;
     createOffscreenDocument(): Promise<void>;
     handleMessage(message: ExtensionMessage): Promise<void>;
+    private startTabRecording;
+    private hasOffscreenDocument;
+    private sendPopupError;
+    private getTabCaptureStreamId;
     private updateExtensionIcon;
     private getCurrentTab;
     private canRecordTab;

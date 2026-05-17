@@ -17,38 +17,75 @@ export class OffscreenManager implements IOffscreenManager {
   }
 
   async initializeAudioProcessing(): Promise<void> {
-    // Implementation will be added in subsequent tasks
-    throw new Error('Not implemented yet');
+    await Promise.resolve();
   }
 
   async handleRecordingRequest(streamId: string): Promise<void> {
-    // Implementation will be added in subsequent tasks
-    throw new Error('Not implemented yet');
+    if (!this.recordingController) {
+      throw new Error('Recording controller is not available.');
+    }
+
+    try {
+      await this.recordingController.startRecording(this.getDefaultRecordingOptions(streamId));
+      window.location.hash = 'recording';
+      this.sendMessageToServiceWorker('update-icon', { recording: true });
+      this.sendMessageToPopup('recording-started');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to start recording.';
+      this.sendMessageToPopup('recording-error', undefined, message);
+      this.sendMessageToServiceWorker('update-icon', { recording: false });
+    }
+  }
+
+  async stopRecording(): Promise<void> {
+    if (!this.recordingController) return;
+
+    try {
+      const blob = await this.recordingController.stopRecording();
+      this.downloadRecording(blob);
+      window.location.hash = '';
+      this.sendMessageToServiceWorker('recording-stopped');
+      this.sendMessageToPopup('recording-stopped');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to stop recording.';
+      this.sendMessageToPopup('recording-error', undefined, message);
+    }
   }
 
   async cleanup(): Promise<void> {
-    // Implementation will be added in subsequent tasks
-    throw new Error('Not implemented yet');
+    if (this.recordingController?.getRecordingState() !== 'idle') {
+      await this.recordingController?.stopRecording();
+    }
   }
 
-  private getDefaultRecordingOptions(): RecordingOptions {
+  private getDefaultRecordingOptions(streamId: string): RecordingOptions {
     return {
-      includeSystemAudio: true,
-      includeMicrophone: true,
+      streamId,
       audioQuality: AudioQuality.HIGH,
       outputFormat: 'webm'
     };
   }
 
-  private sendMessageToServiceWorker(type: string, data?: any): void {
+  private downloadRecording(blob: Blob): void {
+    if (blob.size === 0) return;
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `tab-recording-${new Date().toISOString().replace(/[:.]/g, '-')}.webm`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private sendMessageToServiceWorker(type: string, data?: unknown): void {
     chrome.runtime.sendMessage({
       type,
       target: 'service-worker',
-      data
+      ...(typeof data === 'object' && data !== null ? data : { data })
     });
   }
 
-  private sendMessageToPopup(type: string, data?: any, error?: string): void {
+  private sendMessageToPopup(type: string, data?: unknown, error?: string): void {
     chrome.runtime.sendMessage({
       type,
       target: 'popup',

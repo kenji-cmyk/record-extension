@@ -9,8 +9,6 @@ export declare class ErrorHandler implements IErrorHandler {
     handlePermissionError(error: PermissionError): Promise<void>;
     handleStreamInterruption(streamId: string): Promise<void>;
     handleRecordingError(error: RecordingError): Promise<void>;
-    private continueWithSystemAudioOnly;
-    private fallbackToTabCapture;
     private continueRecording;
     private stopRecordingWithError;
     private showUserNotification;

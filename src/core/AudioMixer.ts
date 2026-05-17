@@ -19,18 +19,37 @@ export class WebAudioMixer implements IAudioMixer {
   }
 
   addAudioSource(source: AudioSource): void {
-    // Implementation will be added in subsequent tasks
-    throw new Error('Not implemented yet');
+    if (this.sources.has(source.id)) {
+      return;
+    }
+
+    const sourceNode = this.audioContext.createMediaStreamSource(source.stream);
+    const gainNode = this.audioContext.createGain();
+    gainNode.gain.value = 1;
+
+    sourceNode.connect(gainNode);
+    gainNode.connect(this.destination);
+
+    // chrome.tabCapture mutes the captured tab unless the stream is routed back.
+    gainNode.connect(this.audioContext.destination);
+
+    this.sources.set(source.id, { sourceNode, gainNode, source });
   }
 
   removeAudioSource(sourceId: string): void {
-    // Implementation will be added in subsequent tasks
-    throw new Error('Not implemented yet');
+    const sourceNode = this.sources.get(sourceId);
+    if (!sourceNode) return;
+
+    sourceNode.sourceNode.disconnect();
+    sourceNode.gainNode.disconnect();
+    this.sources.delete(sourceId);
   }
 
   setSourceVolume(sourceId: string, volume: number): void {
-    // Implementation will be added in subsequent tasks
-    throw new Error('Not implemented yet');
+    const sourceNode = this.sources.get(sourceId);
+    if (!sourceNode) return;
+
+    sourceNode.gainNode.gain.value = Math.min(Math.max(volume, 0), 1);
   }
 
   getMixedStream(): MediaStream {

@@ -15,8 +15,7 @@ import type {
  * Default recording options for testing
  */
 export const defaultRecordingOptions: RecordingOptions = {
-  includeSystemAudio: true,
-  includeMicrophone: true,
+  streamId: 'test-stream-id',
   audioQuality: 'high',
   outputFormat: 'webm'
 }
@@ -26,27 +25,17 @@ export const defaultRecordingOptions: RecordingOptions = {
  */
 export const sampleAudioSources: AudioSource[] = [
   {
-    id: 'system-audio-1',
-    type: 'system',
-    name: 'System Audio',
-    isActive: true
-  },
-  {
-    id: 'microphone-1',
-    type: 'microphone',
-    name: 'Default Microphone',
-    isActive: true
-  },
-  {
     id: 'tab-1',
     type: 'tab',
     name: 'YouTube - Tab 1',
+    stream: new MediaStream(),
     isActive: true
   },
   {
     id: 'tab-2',
     type: 'tab',
     name: 'Spotify - Tab 2',
+    stream: new MediaStream(),
     isActive: false
   }
 ]
@@ -66,17 +55,10 @@ export const sampleRecordingMetadata: RecordingMetadata = {
  * Sample audio configuration
  */
 export const sampleAudioConfiguration: AudioConfiguration = {
-  systemAudio: {
+  tabAudio: {
     enabled: true,
     volume: 0.8,
     sampleRate: 44100
-  },
-  microphone: {
-    enabled: true,
-    volume: 0.7,
-    echoCancellation: true,
-    noiseSuppression: true,
-    autoGainControl: false
   },
   output: {
     format: 'webm',
@@ -89,8 +71,6 @@ export const sampleAudioConfiguration: AudioConfiguration = {
  * Sample permission status
  */
 export const samplePermissionStatus: PermissionStatus = {
-  displayMedia: 'granted',
-  microphone: 'granted',
   tabCapture: 'granted'
 }
 

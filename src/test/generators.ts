@@ -39,7 +39,7 @@ export const recordingStateArb = fc.constantFrom(
  * Generator for audio source types
  */
 export const audioSourceTypeArb = fc.constantFrom(
-  'system', 'microphone', 'tab'
+  'tab'
 )
 
 /**
@@ -51,10 +51,9 @@ export const volumeArb = fc.float({ min: 0.0, max: 1.0 })
  * Generator for recording options
  */
 export const recordingOptionsArb = fc.record({
-  includeSystemAudio: fc.boolean(),
-  includeMicrophone: fc.boolean(),
+  streamId: fc.string({ minLength: 1 }),
   audioQuality: audioQualityArb,
-  outputFormat: audioFormatArb
+  outputFormat: fc.constant('webm')
 })
 
 /**
@@ -82,8 +81,6 @@ export const recordingMetadataArb = fc.record({
  * Generator for permission status
  */
 export const permissionStatusArb = fc.record({
-  displayMedia: fc.constantFrom('granted', 'denied', 'prompt'),
-  microphone: fc.constantFrom('granted', 'denied', 'prompt'),
   tabCapture: fc.constantFrom('granted', 'denied')
 })
 
@@ -91,20 +88,13 @@ export const permissionStatusArb = fc.record({
  * Generator for audio configuration
  */
 export const audioConfigurationArb = fc.record({
-  systemAudio: fc.record({
+  tabAudio: fc.record({
     enabled: fc.boolean(),
     volume: volumeArb,
     sampleRate: audioSampleRateArb
   }),
-  microphone: fc.record({
-    enabled: fc.boolean(),
-    volume: volumeArb,
-    echoCancellation: fc.boolean(),
-    noiseSuppression: fc.boolean(),
-    autoGainControl: fc.boolean()
-  }),
   output: fc.record({
-    format: audioFormatArb,
+    format: fc.constant('webm'),
     quality: audioQualityArb,
     bitRate: audioBitRateArb
   })

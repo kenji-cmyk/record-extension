@@ -20,11 +20,11 @@ export class PopupController implements IPopupController {
 
   private startButton?: HTMLButtonElement;
   private stopButton?: HTMLButtonElement;
-  private pauseButton?: HTMLButtonElement;
-  private resumeButton?: HTMLButtonElement;
   private statusElement?: HTMLElement;
   private durationElement?: HTMLElement;
   private errorElement?: HTMLElement;
+  private timerId: number | undefined;
+  private recordingStartedAt: number | undefined;
 
   constructor() {
     this.initializeElements();
@@ -32,50 +32,72 @@ export class PopupController implements IPopupController {
   }
 
   updateRecordingState(state: RecordingState): void {
-    // Implementation will be added in subsequent tasks
-    throw new Error('Not implemented yet');
+    this.uiState.isRecording = state === RecordingState.RECORDING;
+    this.uiState.isPaused = state === RecordingState.PAUSED;
+
+    this.startButton?.toggleAttribute('hidden', this.uiState.isRecording);
+    this.stopButton?.toggleAttribute('hidden', !this.uiState.isRecording);
+
+    if (this.statusElement) {
+      this.statusElement.textContent = this.getStatusText(state);
+      this.statusElement.dataset.state = state;
+    }
+
+    if (state === RecordingState.RECORDING) {
+      this.startTimer();
+    } else {
+      this.stopTimer();
+    }
   }
 
   updateRecordingDuration(duration: number): void {
-    // Implementation will be added in subsequent tasks
-    throw new Error('Not implemented yet');
+    this.uiState.duration = duration;
+    if (this.durationElement) {
+      this.durationElement.textContent = this.formatDuration(duration);
+    }
   }
 
   showError(message: string): void {
-    // Implementation will be added in subsequent tasks
-    throw new Error('Not implemented yet');
+    this.uiState.error = message;
+    if (this.errorElement) {
+      this.errorElement.textContent = message;
+      this.errorElement.removeAttribute('hidden');
+    }
   }
 
   hideError(): void {
-    // Implementation will be added in subsequent tasks
-    throw new Error('Not implemented yet');
+    delete this.uiState.error;
+    this.errorElement?.setAttribute('hidden', '');
   }
 
   async handleStartRecording(): Promise<void> {
-    // Implementation will be added in subsequent tasks
-    throw new Error('Not implemented yet');
+    this.hideError();
+    this.updateRecordingState(RecordingState.STARTING);
+    chrome.runtime.sendMessage({
+      type: 'request-recording',
+      target: 'service-worker'
+    });
   }
 
   async handleStopRecording(): Promise<void> {
-    // Implementation will be added in subsequent tasks
-    throw new Error('Not implemented yet');
+    this.updateRecordingState(RecordingState.STOPPING);
+    chrome.runtime.sendMessage({
+      type: 'stop-recording',
+      target: 'service-worker'
+    });
   }
 
   async handlePauseRecording(): Promise<void> {
-    // Implementation will be added in subsequent tasks
-    throw new Error('Not implemented yet');
+    await Promise.resolve();
   }
 
   async handleResumeRecording(): Promise<void> {
-    // Implementation will be added in subsequent tasks
-    throw new Error('Not implemented yet');
+    await Promise.resolve();
   }
 
   private initializeElements(): void {
     this.startButton = document.getElementById('startRecord') as HTMLButtonElement;
     this.stopButton = document.getElementById('stopRecord') as HTMLButtonElement;
-    this.pauseButton = document.getElementById('pauseRecord') as HTMLButtonElement;
-    this.resumeButton = document.getElementById('resumeRecord') as HTMLButtonElement;
     this.statusElement = document.getElementById('recordingStatus') as HTMLElement;
     this.durationElement = document.getElementById('recordingDuration') as HTMLElement;
     this.errorElement = document.getElementById('errorMessage') as HTMLElement;
@@ -84,8 +106,6 @@ export class PopupController implements IPopupController {
   private setupEventListeners(): void {
     this.startButton?.addEventListener('click', () => this.handleStartRecording());
     this.stopButton?.addEventListener('click', () => this.handleStopRecording());
-    this.pauseButton?.addEventListener('click', () => this.handlePauseRecording());
-    this.resumeButton?.addEventListener('click', () => this.handleResumeRecording());
 
     // Listen for messages from service worker and offscreen document
     chrome.runtime.onMessage.addListener((message: ExtensionMessage) => {
@@ -93,11 +113,85 @@ export class PopupController implements IPopupController {
         this.handleMessage(message);
       }
     });
+
+    this.syncRecordingState().catch((error) => {
+      this.showError(error instanceof Error ? error.message : 'Unable to read recording state.');
+    });
   }
 
   private handleMessage(message: ExtensionMessage): void {
-    // Implementation will be added in subsequent tasks
-    console.log('Received message:', message);
+    switch (message.type) {
+      case 'recording-started':
+        this.recordingStartedAt = Date.now();
+        this.updateRecordingState(RecordingState.RECORDING);
+        break;
+      case 'recording-stopped':
+      this.recordingStartedAt = undefined;
+        this.updateRecordingDuration(0);
+        this.updateRecordingState(RecordingState.IDLE);
+        break;
+      case 'recording-error':
+        this.recordingStartedAt = undefined;
+        this.updateRecordingState(RecordingState.IDLE);
+        this.showError(message.error ?? 'Recording failed.');
+        break;
+      default:
+        console.warn('Received unknown popup message:', message.type);
+    }
+  }
+
+  private async syncRecordingState(): Promise<void> {
+    const runtimeWithContexts = chrome.runtime as typeof chrome.runtime & {
+      getContexts?: (filter: Record<string, unknown>) => Promise<Array<{ contextType: string; documentUrl: string }>>;
+    };
+
+    if (!runtimeWithContexts.getContexts) {
+      this.updateRecordingState(RecordingState.IDLE);
+      return;
+    }
+
+    const contexts = await runtimeWithContexts.getContexts({});
+    const isRecording = contexts.some((context) =>
+      context.contextType === 'OFFSCREEN_DOCUMENT' && Boolean(context.documentUrl?.endsWith('#recording'))
+    );
+
+    if (isRecording) {
+      this.recordingStartedAt = Date.now();
+      this.updateRecordingState(RecordingState.RECORDING);
+      return;
+    }
+
+    this.updateRecordingState(RecordingState.IDLE);
+  }
+
+  private startTimer(): void {
+    if (!this.recordingStartedAt) {
+      this.recordingStartedAt = Date.now();
+    }
+
+    window.clearInterval(this.timerId);
+    this.timerId = window.setInterval(() => {
+      this.updateRecordingDuration(Date.now() - (this.recordingStartedAt ?? Date.now()));
+    }, 1000);
+  }
+
+  private stopTimer(): void {
+    window.clearInterval(this.timerId);
+  }
+
+  private getStatusText(state: RecordingState): string {
+    switch (state) {
+      case RecordingState.STARTING:
+        return 'Preparing tab capture';
+      case RecordingState.RECORDING:
+        return 'Recording tab audio';
+      case RecordingState.STOPPING:
+        return 'Saving recording';
+      case RecordingState.ERROR:
+        return 'Recording failed';
+      default:
+        return 'Ready to record this tab';
+    }
   }
 
   private formatDuration(milliseconds: number): string {

@@ -1,26 +1,38 @@
 /**
- * Manages audio capture from multiple sources: system audio, microphone, and tab capture
- * Implements primary getDisplayMedia approach with tabCapture fallback
+ * Captures audio from the active browser tab only.
  */
 export class AudioCaptureManager {
     constructor() {
         this.audioSources = new Map();
     }
-    async initializeSystemAudio() {
-        // Implementation will be added in subsequent tasks
-        throw new Error('Not implemented yet');
-    }
-    async initializeMicrophone() {
-        // Implementation will be added in subsequent tasks
-        throw new Error('Not implemented yet');
-    }
-    async initializeTabCapture() {
-        // Implementation will be added in subsequent tasks
-        throw new Error('Not implemented yet');
+    async initializeTabCapture(streamId) {
+        if (!streamId) {
+            throw new Error('Missing tab capture stream id.');
+        }
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                mandatory: {
+                    chromeMediaSource: 'tab',
+                    chromeMediaSourceId: streamId
+                }
+            },
+            video: false
+        });
+        const source = {
+            id: this.generateSourceId(),
+            type: 'tab',
+            name: 'Current tab',
+            stream,
+            isActive: true
+        };
+        this.audioSources.set(source.id, source);
+        return stream;
     }
     releaseAllStreams() {
-        // Implementation will be added in subsequent tasks
-        throw new Error('Not implemented yet');
+        this.audioSources.forEach((source) => {
+            source.stream.getTracks().forEach((track) => track.stop());
+        });
+        this.audioSources.clear();
     }
     getAvailableAudioSources() {
         return Array.from(this.audioSources.values());

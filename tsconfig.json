@@ -23,11 +23,11 @@
     "types": ["chrome"]
   },
   "include": [
-    "src/**/*",
-    "vitest.config.ts"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "src/test"
   ]
 }
