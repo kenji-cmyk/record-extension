@@ -3,7 +3,8 @@ import {
   RecordingState,
   AudioSource,
   UIState,
-  ExtensionMessage
+  ExtensionMessage,
+  RecordingStatusSnapshot
 } from '../types/index.js';
 
 /**
@@ -122,11 +123,11 @@ export class PopupController implements IPopupController {
   private handleMessage(message: ExtensionMessage): void {
     switch (message.type) {
       case 'recording-started':
-        this.recordingStartedAt = Date.now();
+        this.applyRecordingStatus(this.parseRecordingStatus(message.data));
         this.updateRecordingState(RecordingState.RECORDING);
         break;
       case 'recording-stopped':
-      this.recordingStartedAt = undefined;
+        this.recordingStartedAt = undefined;
         this.updateRecordingDuration(0);
         this.updateRecordingState(RecordingState.IDLE);
         break;
@@ -141,6 +142,13 @@ export class PopupController implements IPopupController {
   }
 
   private async syncRecordingState(): Promise<void> {
+    const liveStatus = await this.requestRecordingStatus();
+    if (liveStatus) {
+      this.applyRecordingStatus(liveStatus);
+      this.updateRecordingState(liveStatus.state);
+      return;
+    }
+
     const runtimeWithContexts = chrome.runtime as typeof chrome.runtime & {
       getContexts?: (filter: Record<string, unknown>) => Promise<Array<{ contextType: string; documentUrl: string }>>;
     };
@@ -156,12 +164,48 @@ export class PopupController implements IPopupController {
     );
 
     if (isRecording) {
-      this.recordingStartedAt = Date.now();
       this.updateRecordingState(RecordingState.RECORDING);
       return;
     }
 
     this.updateRecordingState(RecordingState.IDLE);
+  }
+
+  private async requestRecordingStatus(): Promise<RecordingStatusSnapshot | undefined> {
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'get-recording-status',
+        target: 'offscreen'
+      });
+
+      return this.parseRecordingStatus(response);
+    } catch {
+      return undefined;
+    }
+  }
+
+  private parseRecordingStatus(data: unknown): RecordingStatusSnapshot | undefined {
+    if (!data || typeof data !== 'object') return undefined;
+
+    const snapshot = data as Partial<RecordingStatusSnapshot>;
+    if (!snapshot.state || typeof snapshot.duration !== 'number') return undefined;
+
+    return {
+      state: snapshot.state,
+      isRecording: Boolean(snapshot.isRecording),
+      ...(typeof snapshot.startedAt === 'number' ? { startedAt: snapshot.startedAt } : {}),
+      duration: snapshot.duration
+    };
+  }
+
+  private applyRecordingStatus(snapshot: RecordingStatusSnapshot | undefined): void {
+    if (!snapshot) {
+      this.recordingStartedAt = Date.now();
+      return;
+    }
+
+    this.recordingStartedAt = snapshot.startedAt;
+    this.updateRecordingDuration(snapshot.duration);
   }
 
   private startTimer(): void {

@@ -1,4 +1,4 @@
-import { AudioQuality } from '../types/index.js';
+import { AudioQuality, RecordingState } from '../types/index.js';
 /**
  * Offscreen document manager for background audio processing
  * Handles audio capture and recording operations in offscreen context
@@ -16,11 +16,13 @@ export class OffscreenManager {
         }
         try {
             await this.recordingController.startRecording(this.getDefaultRecordingOptions(streamId));
+            this.recordingStartedAt = Date.now();
             window.location.hash = 'recording';
             this.sendMessageToServiceWorker('update-icon', { recording: true });
-            this.sendMessageToPopup('recording-started');
+            this.sendMessageToPopup('recording-started', this.getRecordingStatus());
         }
         catch (error) {
+            this.recordingStartedAt = undefined;
             const message = error instanceof Error ? error.message : 'Unable to start recording.';
             this.sendMessageToPopup('recording-error', undefined, message);
             this.sendMessageToServiceWorker('update-icon', { recording: false });
@@ -32,6 +34,7 @@ export class OffscreenManager {
         try {
             const blob = await this.recordingController.stopRecording();
             this.downloadRecording(blob);
+            this.recordingStartedAt = undefined;
             window.location.hash = '';
             this.sendMessageToServiceWorker('recording-stopped');
             this.sendMessageToPopup('recording-stopped');
@@ -41,10 +44,22 @@ export class OffscreenManager {
             this.sendMessageToPopup('recording-error', undefined, message);
         }
     }
+    getRecordingStatus() {
+        const state = this.recordingController?.getRecordingState() ?? RecordingState.IDLE;
+        const isRecording = state === RecordingState.RECORDING || state === RecordingState.PAUSED || state === RecordingState.STARTING;
+        const duration = this.recordingStartedAt ? Date.now() - this.recordingStartedAt : 0;
+        return {
+            state,
+            isRecording,
+            ...(this.recordingStartedAt ? { startedAt: this.recordingStartedAt } : {}),
+            duration
+        };
+    }
     async cleanup() {
         if (this.recordingController?.getRecordingState() !== 'idle') {
             await this.recordingController?.stopRecording();
         }
+        this.recordingStartedAt = undefined;
     }
     getDefaultRecordingOptions(streamId) {
         return {

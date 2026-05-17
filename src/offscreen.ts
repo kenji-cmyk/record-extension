@@ -5,7 +5,7 @@ import { WebAudioMixer } from './core/AudioMixer.js';
 import { WebMRecorderManager } from './core/MediaRecorderManager.js';
 import { PermissionManager } from './core/PermissionManager.js';
 import { ErrorHandler } from './core/ErrorHandler.js';
-import { ExtensionMessage } from './types/index.js';
+import { ExtensionMessage, RecordingStatusSnapshot } from './types/index.js';
 
 /**
  * Offscreen document entry point for audio processing
@@ -35,8 +35,21 @@ offscreenManager.initializeAudioProcessing().catch(error => {
 });
 
 // Handle messages from service worker and popup
-chrome.runtime.onMessage.addListener(async (message: ExtensionMessage) => {
-  if (message.target === 'offscreen') {
+chrome.runtime.onMessage.addListener((
+  message: ExtensionMessage,
+  _sender,
+  sendResponse: (response?: RecordingStatusSnapshot) => void
+) => {
+  if (message.target !== 'offscreen') {
+    return false;
+  }
+
+  if (message.type === 'get-recording-status') {
+    sendResponse(offscreenManager.getRecordingStatus());
+    return false;
+  }
+
+  void (async () => {
     try {
       switch (message.type) {
         case 'start-recording':
@@ -54,5 +67,7 @@ chrome.runtime.onMessage.addListener(async (message: ExtensionMessage) => {
     } catch (error) {
       console.error('Offscreen message handling failed:', error);
     }
-  }
+  })();
+
+  return true;
 });

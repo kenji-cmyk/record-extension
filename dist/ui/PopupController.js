@@ -91,7 +91,7 @@ export class PopupController {
     handleMessage(message) {
         switch (message.type) {
             case 'recording-started':
-                this.recordingStartedAt = Date.now();
+                this.applyRecordingStatus(this.parseRecordingStatus(message.data));
                 this.updateRecordingState(RecordingState.RECORDING);
                 break;
             case 'recording-stopped':
@@ -109,6 +109,12 @@ export class PopupController {
         }
     }
     async syncRecordingState() {
+        const liveStatus = await this.requestRecordingStatus();
+        if (liveStatus) {
+            this.applyRecordingStatus(liveStatus);
+            this.updateRecordingState(liveStatus.state);
+            return;
+        }
         const runtimeWithContexts = chrome.runtime;
         if (!runtimeWithContexts.getContexts) {
             this.updateRecordingState(RecordingState.IDLE);
@@ -117,11 +123,43 @@ export class PopupController {
         const contexts = await runtimeWithContexts.getContexts({});
         const isRecording = contexts.some((context) => context.contextType === 'OFFSCREEN_DOCUMENT' && Boolean(context.documentUrl?.endsWith('#recording')));
         if (isRecording) {
-            this.recordingStartedAt = Date.now();
             this.updateRecordingState(RecordingState.RECORDING);
             return;
         }
         this.updateRecordingState(RecordingState.IDLE);
+    }
+    async requestRecordingStatus() {
+        try {
+            const response = await chrome.runtime.sendMessage({
+                type: 'get-recording-status',
+                target: 'offscreen'
+            });
+            return this.parseRecordingStatus(response);
+        }
+        catch {
+            return undefined;
+        }
+    }
+    parseRecordingStatus(data) {
+        if (!data || typeof data !== 'object')
+            return undefined;
+        const snapshot = data;
+        if (!snapshot.state || typeof snapshot.duration !== 'number')
+            return undefined;
+        return {
+            state: snapshot.state,
+            isRecording: Boolean(snapshot.isRecording),
+            ...(typeof snapshot.startedAt === 'number' ? { startedAt: snapshot.startedAt } : {}),
+            duration: snapshot.duration
+        };
+    }
+    applyRecordingStatus(snapshot) {
+        if (!snapshot) {
+            this.recordingStartedAt = Date.now();
+            return;
+        }
+        this.recordingStartedAt = snapshot.startedAt;
+        this.updateRecordingDuration(snapshot.duration);
     }
     startTimer() {
         if (!this.recordingStartedAt) {

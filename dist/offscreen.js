@@ -22,8 +22,15 @@ offscreenManager.initializeAudioProcessing().catch(error => {
     console.error('Failed to initialize audio processing:', error);
 });
 // Handle messages from service worker and popup
-chrome.runtime.onMessage.addListener(async (message) => {
-    if (message.target === 'offscreen') {
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message.target !== 'offscreen') {
+        return false;
+    }
+    if (message.type === 'get-recording-status') {
+        sendResponse(offscreenManager.getRecordingStatus());
+        return false;
+    }
+    void (async () => {
         try {
             switch (message.type) {
                 case 'start-recording':
@@ -42,6 +49,7 @@ chrome.runtime.onMessage.addListener(async (message) => {
         catch (error) {
             console.error('Offscreen message handling failed:', error);
         }
-    }
+    })();
+    return true;
 });
 //# sourceMappingURL=offscreen.js.map

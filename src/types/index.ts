@@ -168,6 +168,13 @@ export interface ExtensionMessage {
   duration?: number;
 }
 
+export interface RecordingStatusSnapshot {
+  state: RecordingState;
+  isRecording: boolean;
+  startedAt?: number;
+  duration: number;
+}
+
 export interface ServiceWorkerManager {
   handleExtensionInstall(): Promise<void>;
   createOffscreenDocument(): Promise<void>;
@@ -177,6 +184,8 @@ export interface ServiceWorkerManager {
 export interface OffscreenManager {
   initializeAudioProcessing(): Promise<void>;
   handleRecordingRequest(streamId: string): Promise<void>;
+  stopRecording(): Promise<void>;
+  getRecordingStatus(): RecordingStatusSnapshot;
   cleanup(): Promise<void>;
 }
 

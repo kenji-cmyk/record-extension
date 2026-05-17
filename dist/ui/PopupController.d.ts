@@ -25,6 +25,9 @@ export declare class PopupController implements IPopupController {
     private setupEventListeners;
     private handleMessage;
     private syncRecordingState;
+    private requestRecordingStatus;
+    private parseRecordingStatus;
+    private applyRecordingStatus;
     private startTimer;
     private stopTimer;
     private getStatusText;
