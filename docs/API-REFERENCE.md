@@ -7,7 +7,7 @@
 3. `OffscreenManager` starts `RecordingController` with that stream id.
 4. `AudioCaptureManager` captures tab audio via `chromeMediaSource: "tab"`.
 5. `WebAudioMixer` routes tab audio to the recorder and back to speakers.
-6. `WebMRecorderManager` writes WebM/Opus data and returns a Blob when stopped.
+6. `WebMRecorderManager` writes compact M4A/AAC data when supported, falls back to WebM/Opus, and returns a Blob when stopped.
 
 ## Core Classes
 
@@ -26,4 +26,3 @@
 - `recording-started`: offscreen document to popup.
 - `recording-stopped`: offscreen document to popup/service worker.
 - `recording-error`: service worker/offscreen document to popup.
-

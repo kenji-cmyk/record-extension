@@ -145,6 +145,7 @@ export const sampleErrors = {
 export const sampleMimeTypeSupport = {
   'audio/webm': true,
   'audio/webm;codecs=opus': true,
+  'audio/mp4;codecs=mp4a.40.2': true,
   'audio/mp4': true,
   'audio/mpeg': false,
   'audio/wav': false

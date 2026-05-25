@@ -1,12 +1,13 @@
 import {
   MediaRecorderManager as IMediaRecorderManager,
   RecordingOptions,
-  AudioQuality
+  AudioQuality,
+  AudioOutputFormat
 } from '../types/index.js';
 
 /**
  * Manages MediaRecorder API for recording and exporting audio files
- * Supports WebM and MP3 formats with configurable quality settings
+ * Supports compact M4A/AAC output with WebM/Opus fallback.
  */
 export class WebMRecorderManager implements IMediaRecorderManager {
   private mediaRecorder: MediaRecorder | undefined;
@@ -14,6 +15,7 @@ export class WebMRecorderManager implements IMediaRecorderManager {
   private stopPromise: Promise<Blob> | undefined;
   private resolveStop: ((blob: Blob) => void) | undefined;
   private rejectStop: ((error: Error) => void) | undefined;
+  private activeMimeType = 'audio/webm';
 
   startRecording(stream: MediaStream, options: RecordingOptions): void {
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
@@ -21,16 +23,17 @@ export class WebMRecorderManager implements IMediaRecorderManager {
     }
 
     this.recordedChunks = [];
-    const mimeType = this.getMimeType(options.outputFormat);
+    const mimeType = this.selectSupportedMimeType(options.outputFormat);
     const recorderOptions: MediaRecorderOptions = {
       audioBitsPerSecond: this.getAudioBitrate(options.audioQuality)
     };
 
-    if (MediaRecorder.isTypeSupported(mimeType)) {
+    if (this.isMimeTypeSupported(mimeType)) {
       recorderOptions.mimeType = mimeType;
     }
 
     this.mediaRecorder = new MediaRecorder(stream, recorderOptions);
+    this.activeMimeType = this.mediaRecorder.mimeType || mimeType;
     this.stopPromise = new Promise<Blob>((resolve, reject) => {
       this.resolveStop = resolve;
       this.rejectStop = reject;
@@ -47,7 +50,7 @@ export class WebMRecorderManager implements IMediaRecorderManager {
     };
 
     this.mediaRecorder.onstop = () => {
-      const blob = new Blob(this.recordedChunks, { type: 'audio/webm' });
+      const blob = new Blob(this.recordedChunks, { type: this.activeMimeType });
       this.resolveStop?.(blob);
     };
 
@@ -68,12 +71,12 @@ export class WebMRecorderManager implements IMediaRecorderManager {
 
   async stopRecording(): Promise<Blob> {
     if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') {
-      return new Blob(this.recordedChunks, { type: 'audio/webm' });
+      return new Blob(this.recordedChunks, { type: this.activeMimeType });
     }
 
     const result = this.stopPromise;
     if (!result) {
-      return new Blob(this.recordedChunks, { type: 'audio/webm' });
+      return new Blob(this.recordedChunks, { type: this.activeMimeType });
     }
     this.mediaRecorder.stop();
     const blob = await result;
@@ -91,19 +94,36 @@ export class WebMRecorderManager implements IMediaRecorderManager {
   private getAudioBitrate(quality: AudioQuality): number {
     switch (quality) {
       case AudioQuality.LOW:
-        return 64000;
+        return 48000;
       case AudioQuality.MEDIUM:
-        return 128000;
+        return 96000;
       case AudioQuality.HIGH:
-        return 256000;
-      case AudioQuality.LOSSLESS:
-        return 320000;
-      default:
         return 128000;
+      case AudioQuality.LOSSLESS:
+        return 192000;
+      default:
+        return 96000;
     }
   }
 
-  private getMimeType(format: 'webm'): string {
-    return format === 'webm' ? 'audio/webm;codecs=opus' : 'audio/webm';
+  private selectSupportedMimeType(format: AudioOutputFormat): string {
+    const preferredMimeTypes = this.getMimeTypeCandidates(format);
+    const fallbackMimeTypes = this.getMimeTypeCandidates('webm');
+    const candidate = [...preferredMimeTypes, ...fallbackMimeTypes]
+      .find((mimeType) => this.isMimeTypeSupported(mimeType));
+
+    return candidate ?? preferredMimeTypes[preferredMimeTypes.length - 1] ?? 'audio/webm';
+  }
+
+  private getMimeTypeCandidates(format: AudioOutputFormat): string[] {
+    if (format === 'm4a') {
+      return ['audio/mp4;codecs=mp4a.40.2', 'audio/mp4'];
+    }
+
+    return ['audio/webm;codecs=opus', 'audio/webm'];
+  }
+
+  private isMimeTypeSupported(mimeType: string): boolean {
+    return typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported(mimeType);
   }
 }

@@ -5,7 +5,7 @@ Chrome extension for recording audio from the active browser tab.
 ## What It Does
 
 - Records audio from the current tab only.
-- Saves recordings as WebM/Opus files.
+- Saves compact M4A/AAC recordings when supported, with WebM/Opus fallback.
 - Keeps captured tab audio audible by routing it back to the output device.
 - Uses a Manifest V3 offscreen document for background recording.
 

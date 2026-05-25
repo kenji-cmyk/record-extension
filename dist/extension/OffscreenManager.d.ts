@@ -14,6 +14,7 @@ export declare class OffscreenManager implements IOffscreenManager {
     cleanup(): Promise<void>;
     private getDefaultRecordingOptions;
     private downloadRecording;
+    private getFileExtension;
     private sendMessageToServiceWorker;
     private sendMessageToPopup;
 }

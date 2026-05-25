@@ -64,8 +64,8 @@ export class OffscreenManager {
     getDefaultRecordingOptions(streamId) {
         return {
             streamId,
-            audioQuality: AudioQuality.HIGH,
-            outputFormat: 'webm'
+            audioQuality: AudioQuality.LOW,
+            outputFormat: 'm4a'
         };
     }
     downloadRecording(blob) {
@@ -74,9 +74,16 @@ export class OffscreenManager {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `tab-recording-${new Date().toISOString().replace(/[:.]/g, '-')}.webm`;
+        link.download = `tab-recording-${new Date().toISOString().replace(/[:.]/g, '-')}.${this.getFileExtension(blob.type)}`;
         link.click();
         URL.revokeObjectURL(url);
+    }
+    getFileExtension(mimeType) {
+        if (mimeType.includes('mp4'))
+            return 'm4a';
+        if (mimeType.includes('ogg'))
+            return 'ogg';
+        return 'webm';
     }
     sendMessageToServiceWorker(type, data) {
         chrome.runtime.sendMessage({

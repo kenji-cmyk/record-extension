@@ -37,7 +37,7 @@ export const mockURL = {
 }
 
 // Mock Blob constructor
-export const mockBlob = vi.fn().mockImplementation((parts: any[], options: BlobPropertyBag = {}) => {
+export const mockBlob = vi.fn().mockImplementation(function (parts: any[], options: BlobPropertyBag = {}) {
   return {
     size: parts.reduce((acc, part) => acc + (part.length || part.byteLength || 0), 0),
     type: options.type || '',
@@ -170,6 +170,7 @@ export function mockMediaRecorderSupport(mimeTypes: { [key: string]: boolean } =
   const defaultSupport = {
     'audio/webm': true,
     'audio/webm;codecs=opus': true,
+    'audio/mp4;codecs=mp4a.40.2': true,
     'audio/mp4': true,
     'audio/mpeg': false
   }

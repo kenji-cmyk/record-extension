@@ -26,7 +26,7 @@ export const audioQualityArb = fc.constantFrom(
 /**
  * Generator for audio formats
  */
-export const audioFormatArb = fc.constantFrom('webm', 'mp3')
+export const audioFormatArb = fc.constantFrom('webm', 'm4a')
 
 /**
  * Generator for recording states
@@ -53,7 +53,7 @@ export const volumeArb = fc.float({ min: 0.0, max: 1.0 })
 export const recordingOptionsArb = fc.record({
   streamId: fc.string({ minLength: 1 }),
   audioQuality: audioQualityArb,
-  outputFormat: fc.constant('webm')
+  outputFormat: fc.constantFrom('webm', 'm4a')
 })
 
 /**
@@ -94,7 +94,7 @@ export const audioConfigurationArb = fc.record({
     sampleRate: audioSampleRateArb
   }),
   output: fc.record({
-    format: fc.constant('webm'),
+    format: fc.constantFrom('webm', 'm4a'),
     quality: audioQualityArb,
     bitRate: audioBitRateArb
   })

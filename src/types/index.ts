@@ -16,8 +16,10 @@ export interface RecordingController {
 export interface RecordingOptions {
   streamId: string;
   audioQuality: AudioQuality;
-  outputFormat: 'webm';
+  outputFormat: AudioOutputFormat;
 }
+
+export type AudioOutputFormat = 'webm' | 'm4a';
 
 export enum RecordingState {
   IDLE = 'idle',
@@ -120,7 +122,7 @@ export interface AudioConfiguration {
     sampleRate: number;
   };
   output: {
-    format: 'webm';
+    format: AudioOutputFormat;
     quality: AudioQuality;
     bitRate: number;
   };
